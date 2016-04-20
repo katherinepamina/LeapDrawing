@@ -1,12 +1,10 @@
 var VSHADER_SOURCE = 
-  'uniform mat4 u_ModelMatrix;\n' +
   'attribute vec4 a_Position;\n' +
-  'attribute vec4 a_Color;\n' +
   'varying vec4 v_Color;\n' +
   'void main() {\n' +
-  '  gl_Position = u_ModelMatrix * a_Position;\n' +
+  '  gl_Position = a_Position;\n' +
   '  gl_PointSize = 10.0;\n' +
-  '  v_Color = a_Color;\n' +
+  '  v_Color = vec4(0.0, 0.0, 1.0, 1.0);\n' +
   '}\n';
 
 // Fragment shader program----------------------------------
@@ -23,6 +21,7 @@ var FSHADER_SOURCE =
 var previousFrame = null;
 var paused = false;
 var pauseOnGesture = false;
+var posX = 0.0, posY = 0.0, posZ = 0.0;
 
 // Setup Leap loop with frame callback function
 var controllerOptions = {enableGestures: true};
@@ -50,15 +49,7 @@ var controllerOptions = {enableGestures: true};
 
   // Specify the color for clearing <canvas>
   gl.clearColor(0, 0, 0, 1);
-
-  // Get storage location of u_ModelMatrix
-  var u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
-  if (!u_ModelMatrix) { 
-    console.log('Failed to get the storage location of u_ModelMatrix');
-  }
-
-  // Model matrix
-  var modelMatrix = new Matrix4();
+  draw(gl, n);
 
 Leap.loop(controllerOptions, function(frame) {
   if (paused) {
@@ -108,6 +99,13 @@ Leap.loop(controllerOptions, function(frame) {
       handString += "Arm direction: " + vectorToString(hand.arm.direction()) + "<br />";
       handString += "Arm center: " + vectorToString(hand.arm.center()) + "<br />";
       handString += "Arm up vector: " + vectorToString(hand.arm.basis[1]) + "<br />";
+      
+      posX = hand.palmPosition[0] / 100;
+      posY = hand.palmPosition[1] / 100 - 1;
+      posZ = hand.palmPosition[2] / 100;
+      console.log(posX, posY, posZ);
+      n = initVertexBuffers(gl);
+      draw(gl, n);
 
       // Hand motion factors
       if (previousFrame && previousFrame.valid) {
@@ -143,96 +141,7 @@ Leap.loop(controllerOptions, function(frame) {
   }
   handOutput.innerHTML = handString;
 
-  // Display Pointable (finger and tool) object data
-  var pointableOutput = document.getElementById("pointableData");
-  var pointableString = "";
-  if (frame.pointables.length > 0) {
-    var fingerTypeMap = ["Thumb", "Index finger", "Middle finger", "Ring finger", "Pinky finger"];
-    var boneTypeMap = ["Metacarpal", "Proximal phalanx", "Intermediate phalanx", "Distal phalanx"];
-    for (var i = 0; i < frame.pointables.length; i++) {
-      var pointable = frame.pointables[i];
-
-      pointableString += "<div style='width:250px; float:left; padding:5px'>";
-
-      if (pointable.tool) {
-        pointableString += "Pointable ID: " + pointable.id + "<br />";
-        pointableString += "Classified as a tool <br />";
-        pointableString += "Length: " + pointable.length.toFixed(1) + " mm<br />";
-        pointableString += "Width: "  + pointable.width.toFixed(1) + " mm<br />";
-        pointableString += "Direction: " + vectorToString(pointable.direction, 2) + "<br />";
-        pointableString += "Tip position: " + vectorToString(pointable.tipPosition) + " mm<br />"
-        pointableString += "</div>";
-      }
-      else {
-        pointableString += "Pointable ID: " + pointable.id + "<br />";
-        pointableString += "Type: " + fingerTypeMap[pointable.type] + "<br />";
-        pointableString += "Belongs to hand with ID: " + pointable.handId + "<br />";
-        pointableString += "Classified as a finger<br />";
-        pointableString += "Length: " + pointable.length.toFixed(1) + " mm<br />";
-        pointableString += "Width: "  + pointable.width.toFixed(1) + " mm<br />";
-        pointableString += "Direction: " + vectorToString(pointable.direction, 2) + "<br />";
-        pointableString += "Extended?: "  + pointable.extended + "<br />";
-        pointable.bones.forEach( function(bone){
-          pointableString += boneTypeMap[bone.type] + " bone <br />";
-          pointableString += "Center: " + vectorToString(bone.center()) + "<br />";
-          pointableString += "Direction: " + vectorToString(bone.direction()) + "<br />";
-          pointableString += "Up vector: " + vectorToString(bone.basis[1]) + "<br />";
-        });
-        pointableString += "Tip position: " + vectorToString(pointable.tipPosition) + " mm<br />";
-        pointableString += "</div>";
-      }
-    }
-  }
-  else {
-    pointableString += "<div>No pointables</div>";
-  }
-  pointableOutput.innerHTML = pointableString;
-
-  // Display Gesture object data
-  var gestureOutput = document.getElementById("gestureData");
-  var gestureString = "";
-  if (frame.gestures.length > 0) {
-    if (pauseOnGesture) {
-      togglePause();
-    }
-    for (var i = 0; i < frame.gestures.length; i++) {
-      var gesture = frame.gestures[i];
-      gestureString += "Gesture ID: " + gesture.id + ", "
-                    + "type: " + gesture.type + ", "
-                    + "state: " + gesture.state + ", "
-                    + "hand IDs: " + gesture.handIds.join(", ") + ", "
-                    + "pointable IDs: " + gesture.pointableIds.join(", ") + ", "
-                    + "duration: " + gesture.duration + " &micro;s, ";
-
-      switch (gesture.type) {
-        case "circle":
-          gestureString += "center: " + vectorToString(gesture.center) + " mm, "
-                        + "normal: " + vectorToString(gesture.normal, 2) + ", "
-                        + "radius: " + gesture.radius.toFixed(1) + " mm, "
-                        + "progress: " + gesture.progress.toFixed(2) + " rotations";
-          break;
-        case "swipe":
-          gestureString += "start position: " + vectorToString(gesture.startPosition) + " mm, "
-                        + "current position: " + vectorToString(gesture.position) + " mm, "
-                        + "direction: " + vectorToString(gesture.direction, 1) + ", "
-                        + "speed: " + gesture.speed.toFixed(1) + " mm/s";
-          break;
-        case "screenTap":
-        case "keyTap":
-          gestureString += "position: " + vectorToString(gesture.position) + " mm";
-          break;
-        default:
-          gestureString += "unkown gesture type";
-      }
-      gestureString += "<br />";
-    }
-  }
-  else {
-    gestureString += "No gestures";
-  }
-  gestureOutput.innerHTML = gestureString;
-
-  // Store frame for motion functions
+  
   previousFrame = frame;
 })
 
@@ -265,9 +174,9 @@ function pauseForGestures() {
 
 function initVertexBuffers(gl) {
   var vertices = new Float32Array ([
-    0, 0.5,   -0.5, -0.5,   0.5, -0.5
+    posX, posY, posZ
   ]);
-  var n = 3;   // The number of vertices
+  var n = 1;   // The number of vertices
 
   // Create a buffer object
   var vertexBuffer = gl.createBuffer();
@@ -287,7 +196,7 @@ function initVertexBuffers(gl) {
     console.log('Failed to get the storage location of a_Position');
     return -1;
   }
-  gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
 
   // Enable the assignment to a_Position variable
   gl.enableVertexAttribArray(a_Position);
@@ -295,17 +204,11 @@ function initVertexBuffers(gl) {
   return n;
 }
 
-function draw(gl, n, currentAngle, modelMatrix, u_ModelMatrix) {
-  // Set the rotation matrix
-  modelMatrix.setRotate(currentAngle, 0, 0, 1);
-  modelMatrix.translate(0.35, 0, 0);
- 
-  // Pass the rotation matrix to the vertex shader
-  gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+function draw(gl, n) {
 
   // Clear <canvas>
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   // Draw the rectangle
-  gl.drawArrays(gl.TRIANGLES, 0, n);
+  gl.drawArrays(gl.POINTS, 0, n);
 }

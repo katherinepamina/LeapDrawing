@@ -56,6 +56,7 @@ Leap.loop(controllerOptions, function(frame) {
     return; // Skip this update
   }
 
+
   // Display Frame object data
   var frameOutput = document.getElementById("frameData");
 
@@ -176,19 +177,33 @@ function initVertexBuffers(gl) {
   var vertices = new Float32Array ([
     posX, posY, posZ
   ]);
-  var n = 1;   // The number of vertices
 
-  // Create a buffer object
+  var triangleVertices = new Float32Array([
+    00, 1.0, 0.0,
+    -1.0, -1.0, 0.0,
+    1.0, -1.0, 0.0
+  ]);
+  var n = 4;   // The number of vertices
+
+  // Create a buffer objects
   var vertexBuffer = gl.createBuffer();
   if (!vertexBuffer) {
     console.log('Failed to create the buffer object');
     return -1;
   }
 
+  var triangleBuffer = gl.createBuffer();
+  if (!triangleBuffer) {
+    console.log('Failed to create the triangle uffer object');
+    return -1;
+  }
+
   // Bind the buffer object to target
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
   // Write date into the buffer object
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, triangleVertices, gl.STATIC_DRAW);
 
   // Assign the buffer object to a_Position variable
   var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
@@ -197,6 +212,7 @@ function initVertexBuffers(gl) {
     return -1;
   }
   gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
+
 
   // Enable the assignment to a_Position variable
   gl.enableVertexAttribArray(a_Position);
@@ -211,4 +227,5 @@ function draw(gl, n) {
 
   // Draw the rectangle
   gl.drawArrays(gl.POINTS, 0, n);
+  gl.drawArrays(gl.TRIANGLE, 0, n);
 }

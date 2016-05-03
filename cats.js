@@ -1,31 +1,35 @@
 var ships = {};
 var cats = {};
+var output = document.getElementById('output');
+var crashed = false;
 
 Leap.loop(function(frame) {
-
-  frame.hands.forEach(function(hand, index) {
-
-    var ship = ( ships[index] || (ships[index] = new SpaceShip()) );
-    ship.setTransform(hand.screenPosition(), hand.roll());
-
-    for(var i = 0; i < 10; i++){
-      var cat = (cats[i] || (cats[i] = new Cat()));
-      var pos = hand.screenPosition();
-      if(Math.abs(cat.position[0]-pos[0]) < 20 && Math.abs(cat.position[1]-pos[1]) < 20){
-        console.log("Crash");
-        return;
-      }
-      cat.position[0] += 5;
-      cat.position[1] += 5;
-      cat.setTransform([cat.position[0], cat.position[1]]);
+    if(crashed){
+      return;
     }
+    frame.hands.forEach(function(hand, index) {
 
-  });
+      var ship = ( ships[index] || (ships[index] = new SpaceShip()) );
+      ship.setTransform(hand.screenPosition(), hand.roll());
 
-  
+      for(var i = 0; i < 10; i++){
+        var cat = (cats[i] || (cats[i] = new Cat()));
+        var pos = hand.screenPosition();
+        if(Math.abs(cat.position[0]-pos[0]) < 20 && Math.abs(cat.position[1]-pos[1]) < 20){
+          output.innerHTML = "Crash!";
+          crashed = true;
+          crash(pos);
+          return;
+        }
+        else{
+          cat.position[0] += 5;
+          cat.position[1] += 5;
+          cat.setTransform([cat.position[0], cat.position[1]]);
+        }
+        
+      }
 
-
-
+    });
 }).use('screenPosition', {scale: 0.25});
 
 
@@ -81,4 +85,20 @@ var Cat = function() {
   };
 
 };
+
+
+
+function crash(position)
+{
+    var img = document.createElement('img');
+    img.src = 'http://ultimatelockdown.com/wp-content/uploads/2015/09/explosion-417894_640.png';
+    img.style.position = 'absolute';
+    img.style.height = "10%";
+    img.style.left = position[0] - img.width / 2 + 'px';
+    img.style.top  = position[1] - img.height / 2 + 'px';
+    img.style.webkitTransform = img.style.MozTransform = img.style.msTransform =
+    img.style.OTransform = img.style.transform;
+    document.body.appendChild(img);
+
+}
 

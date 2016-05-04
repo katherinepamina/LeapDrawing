@@ -41,7 +41,8 @@ Leap.loop(function(frame) {
         }
         else {
           for(var j = 0; j < shots.length; j++){
-            if(Math.abs(asteroid.position[0]-shots[j].position[0]) < asteroid.siz/2 && Math.abs(asteroid.position[1]-shots[j].position[1]) < asteroid.siz/2)
+            if(Math.abs(asteroid.position[0]-shots[j].position[0]) < asteroid.siz/2 
+                && Math.abs(asteroid.position[1]-shots[j].position[1]) < asteroid.siz/2)
             {
               count += 1000;
               asteroid.position[0] = Math.random()*window.innerWidth;
@@ -54,11 +55,10 @@ Leap.loop(function(frame) {
           asteroid.position[1] += 5;
           asteroid.siz += 1;
           asteroid.setTransform([asteroid.position[0], asteroid.position[1]], asteroid.siz);
-        now = Date.now();
-        count = (now - last);
         
       }
-
+      now = Date.now();
+      count = (now - last);
     });
 }).use('screenPosition', {scale: 0.25});
 
